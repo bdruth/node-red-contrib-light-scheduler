@@ -1,35 +1,35 @@
 <script type="text/javascript">
   RED.nodes.registerType('light-scheduler', {
     category: 'function',
-    color:"#F8B1FF",
+    color: "#F8B1FF",
     defaults: {
-      settings: {value: "", type: "light-scheduler-settings"},
-      events: {value:"[]"},
-      topic: {value:""},
-      name: {value:""},
-      onPayload: {value:"ON", validate: RED.validators.typedInput("onPayloadType")},
-      onPayloadType: {value:"str"},
-      offPayload: {value:"OFF", validate: RED.validators.typedInput("offPayloadType")},
-      offPayloadType: {value:"str"},
-      onlyWhenDark: {value: true},
-      scheduleRndMax: {value: 0},
-      sunElevationThreshold: {value: 6, required: true, validate: RED.validators.number()},
-      sunShowElevationInStatus: {value: false},
-      outputfreq: {value: "output.statechange.startup"}
+      settings: { value: "", type: "light-scheduler-settings" },
+      events: { value: "[]" },
+      topic: { value: "" },
+      name: { value: "" },
+      onPayload: { value: "ON", validate: RED.validators.typedInput("onPayloadType") },
+      onPayloadType: { value: "str" },
+      offPayload: { value: "OFF", validate: RED.validators.typedInput("offPayloadType") },
+      offPayloadType: { value: "str" },
+      onlyWhenDark: { value: true },
+      scheduleRndMax: { value: 0 },
+      sunElevationThreshold: { value: 6, required: true, validate: RED.validators.number() },
+      sunShowElevationInStatus: { value: false },
+      outputfreq: { value: "output.statechange.startup" }
     },
     inputs: 1,
     outputs: 1,
     icon: 'cal.png',
     paletteLabel: 'Light Scheduler',
-    label: function(){
-      return this.name?this.name:'Light Scheduler'
+    label: function () {
+      return this.name ? this.name : 'Light Scheduler'
     },
     inputLabels: ['Control Input'],
     outputLabels: ['Schedule Output'],
-    oneditprepare: function() {
+    oneditprepare: function () {
       var node = this;
 
-      node.fromMoment = function(m) {
+      node.fromMoment = function (m) {
         m = moment(m);
         return {
           dow: m.day(),
@@ -37,7 +37,7 @@
         };
       };
 
-      node.toMoment = function(o) {
+      node.toMoment = function (o) {
         var day = o.dow == 0 ? 7 : o.dow;
         var m = moment('2018-01-0' + day + ' 00:00:00');
         m.hours(Math.floor(o.mod / 60));
@@ -45,28 +45,28 @@
         return m;
       };
 
-      node.nextId = (function() {
+      node.nextId = (function () {
         var id = 0;
-        return function() {
+        return function () {
           return id++;
         };
       })();
 
-      var setup = function(node) {
+      var setup = function (node) {
         $("#node-input-duskdawn").val(node.onlyWhenDark ? 'duskdawn.goldenhour' : 'duskdawn.none');
-        $("#node-input-outputfreq").val(node.outputfreq ? node.outputfreq : 'output.statechange.startup');        
+        $("#node-input-outputfreq").val(node.outputfreq ? node.outputfreq : 'output.statechange.startup');
 
         node.configuredEvents = [];
-        JSON.parse(node.events).forEach(function(e) {
-          if(!(e.start != undefined && e.start.dow != undefined && e.start.mod != undefined))
+        JSON.parse(node.events).forEach(function (e) {
+          if (!(e.start != undefined && e.start.dow != undefined && e.start.mod != undefined))
             return;
-          if(!(e.end != undefined && e.end.dow != undefined && e.end.mod != undefined))
+          if (!(e.end != undefined && e.end.dow != undefined && e.end.mod != undefined))
             return;
-          
+
           // Workaround for issue #64, for events that cross over to the next day.
           // This should be solved by creating a new event the next day.
           // https://github.com/niklaswall/node-red-contrib-light-scheduler/issues/64
-          if(e.start.mod > e.end.mod)
+          if (e.start.mod > e.end.mod)
             e.end.mod = 0;
 
           eventData = {
@@ -77,7 +77,7 @@
             stick: true,
           };
 
-          if(eventData.start.isAfter(eventData.end)) {
+          if (eventData.start.isAfter(eventData.end)) {
             // start is a sunday (which is moved from date 0 to 7)
             eventData.end.add(7, 'days');
           }
@@ -104,7 +104,7 @@
           selectable: true,
           editable: true,
           events: node.configuredEvents,
-          select: function(start, end) {
+          select: function (start, end) {
             // Remove timezone
             start = node.toMoment(node.fromMoment(start));
             end = node.toMoment(node.fromMoment(end));
@@ -122,49 +122,49 @@
 
             node.configuredEvents.push(eventData);
           },
-          selectAllow: function(selectInfo) {
+          selectAllow: function (selectInfo) {
             var start = moment(selectInfo.start);
             var end = moment(selectInfo.end);
-            if(start.isSame(end, 'day')) {
+            if (start.isSame(end, 'day')) {
               return true;
             }
-            if(start.add(1, 'day').startOf('day').isSame(end, 'minute')) {
+            if (start.add(1, 'day').startOf('day').isSame(end, 'minute')) {
               return true; // Next day but midnight
             }
             return false;
           },
-          eventClick: function(event, jsEvent, view) {
+          eventClick: function (event, jsEvent, view) {
             $('#calendar').fullCalendar('removeEvents', event._id);
-            node.configuredEvents = node.configuredEvents.filter(function(e) {
+            node.configuredEvents = node.configuredEvents.filter(function (e) {
               return event.id != e.id;
             });
           },
-          eventResize: function(event, delta, revertFunc) {
+          eventResize: function (event, delta, revertFunc) {
             // Prevent resize outside of the current day        
-            start = moment(event.start);            
+            start = moment(event.start);
             end = moment(event.end);
 
-            if(!start.isSame(end, 'day'))
-              if(!start.add(1, 'day').startOf('day').isSame(end, 'minute'))
+            if (!start.isSame(end, 'day'))
+              if (!start.add(1, 'day').startOf('day').isSame(end, 'minute'))
                 revertFunc();
 
-            node.configuredEvents.forEach(function(e) {
-              if(event.id == e.id) {
+            node.configuredEvents.forEach(function (e) {
+              if (event.id == e.id) {
                 e.end = moment(e.end).add(delta);
               }
             });
           },
-          eventDrop: function(event, delta, revertFunc, jsEvent, ui, view) {   
+          eventDrop: function (event, delta, revertFunc, jsEvent, ui, view) {
             // Prevent drag outside of the current day        
             start = moment(event.start);
             end = moment(event.end);
 
-            if(!start.isSame(end, 'day'))
-              if(!start.add(1, 'day').startOf('day').isSame(end, 'minute'))
+            if (!start.isSame(end, 'day'))
+              if (!start.add(1, 'day').startOf('day').isSame(end, 'minute'))
                 revertFunc();
 
-            node.configuredEvents.forEach(function(e) {
-              if(event.id == e.id) {
+            node.configuredEvents.forEach(function (e) {
+              if (event.id == e.id) {
                 e.start = moment(e.start).add(delta);
                 e.end = moment(e.end).add(delta);
               }
@@ -172,7 +172,7 @@
           },
         });
 
-        if(node.onPayloadType == null) {
+        if (node.onPayloadType == null) {
           node.onPayloadType = "str";
         }
         $("#node-input-onPayloadType").val(node.onPayloadType);
@@ -180,10 +180,10 @@
         $("#node-input-onPayload").typedInput({
           default: 'str',
           typeField: $("#node-input-onPayloadType"),
-          types:['str','num','bool','json']
+          types: ['str', 'num', 'bool', 'json']
         });
 
-        if(node.offPayloadType == null) {
+        if (node.offPayloadType == null) {
           node.offPayloadType = "str";
         }
         $("#node-input-offPayloadType").val(node.offPayloadType);
@@ -191,28 +191,28 @@
         $("#node-input-offPayload").typedInput({
           default: 'str',
           typeField: $("#node-input-offPayloadType"),
-          types:['str','num','bool','json']
+          types: ['str', 'num', 'bool', 'json']
         });
       }
 
       $.getScript('light-scheduler/js/moment.min.js')
-      .done(function(data, textStatus, jqxhr) {
-        $.getScript('light-scheduler/js/fullcalendar.min.js')
-        .done(function(data, textStatus, jqxhr){
-          setup(node);
-        })
-        .fail(function(jqxhr, settings, exception ){
-          console.log("failed to load fullcalendar.min.js");
-          console.log(exception);
-          console.log(exception.stack);
+        .done(function (data, textStatus, jqxhr) {
+          $.getScript('light-scheduler/js/fullcalendar.min.js')
+            .done(function (data, textStatus, jqxhr) {
+              setup(node);
+            })
+            .fail(function (jqxhr, settings, exception) {
+              console.log("failed to load fullcalendar.min.js");
+              console.log(exception);
+              console.log(exception.stack);
+            });
         });
-      });
     },
-    oneditsave: function() {
+    oneditsave: function () {
       var node = this;
 
       // Transform and store data
-      var events = node.configuredEvents.map(function(e) {
+      var events = node.configuredEvents.map(function (e) {
         return {
           start: node.fromMoment(e.start),
           end: node.fromMoment(e.end),
@@ -225,7 +225,7 @@
 
       delete window.calendar;
     },
-    oneditresize: function() {
+    oneditresize: function () {
     }
   });
 </script>
@@ -295,37 +295,38 @@
     </div>
     <div class="form-row">      
       <label for="node-input-sunElevationThreshold"><i class="fa fa-sun-o"></i> Threshold </label>
-      <select id="node-input-sunElevationThreshold">
-        <option value="10">+10&deg;</option>
-        <option value="9">+9&deg;</option>
-        <option value="8">+8&deg;</option>
-        <option value="7">+7&deg;</option>
-        <option value="6">+6&deg; - Golden Hour</option>
-        <option value="5">+5&deg;</option>
-        <option value="4">+4&deg;</option>
-        <option value="3">+3&deg;</option>
-        <option value="2">+2&deg;</option>
-        <option value="1">+1&deg;</option>
-        <option value="0">+0&deg; - Sunset / Sunrise</option>
-        <option value="-1">-1&deg;</option>
-        <option value="-2">-2&deg;</option>
-        <option value="-3">-3&deg;</option>
-        <option value="-4">-4&deg;</option>
-        <option value="-5">-5&deg;</option>
-        <option value="-6">-6&deg; - Civil dawn</option>
-        <option value="-7">-7&deg;</option>
-        <option value="-8">-8&deg;</option>
-        <option value="-9">-9&deg;</option>
-        <option value="-10">-10&deg;</option>
-        <option value="-11">-11&deg;</option>
-        <option value="-12">-12&deg; - Nautical dawn</option>
-        <option value="-13">-13&deg;</option>
-        <option value="-14">-14&deg;</option>
-        <option value="-15">-15&deg;</option>
-        <option value="-16">-16&deg;</option>
-        <option value="-17">-17&deg;</option>
-        <option value="-18">-18&deg; - Astronomical dawn / Nigh</option>
-      </select>
+      <input type="text" id="node-input-sunElevationThreshold" placeholder="0" list="sunElevationThresholdDefaultOptions" max="180" min="-180" step="0.5"></input>
+      <datalist id="sunElevationThresholdDefaultOptions">
+        <option value="10">
+        <option value="9">
+        <option value="8">
+        <option value="7">
+        <option value="6">
+        <option value="5">
+        <option value="4">
+        <option value="3">
+        <option value="2">
+        <option value="1">
+        <option value="0">
+        <option value="-1">
+        <option value="-2">
+        <option value="-3">
+        <option value="-4">
+        <option value="-5">
+        <option value="-6">
+        <option value="-7">
+        <option value="-8">
+        <option value="-9">
+        <option value="-10">
+        <option value="-11">
+        <option value="-12">
+        <option value="-13">
+        <option value="-14">
+        <option value="-15">
+        <option value="-16">
+        <option value="-17">
+        <option value="-18">
+      </datalist>
       <div class="form-row">
           <label>&nbsp;</label>
           <input type="checkbox" id="node-input-sunShowElevationInStatus" style="display: inline-block; width: auto; vertical-align: top;">
